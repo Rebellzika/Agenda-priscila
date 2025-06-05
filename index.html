@@ -29,7 +29,7 @@
         @keyframes fadeOutToast { from { opacity: 1; } to { opacity: 0; transform: translateX(120%);} }
 
         /* Custom scrollbar for dark theme */
-        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar { width: 8px; height: 8px; } /* Mais fino para mobile */
         ::-webkit-scrollbar-track { background: #1f2937; border-radius: 10px; }
         ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
         ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
@@ -43,6 +43,8 @@
             background-color: #374151 !important;
             border-color: #4b5563 !important;
             color: #e5e7eb !important;
+            font-size: 0.875rem !important; /* Ajuste de fonte para botões do calendário */
+            padding: 0.5em 0.75em !important; /* Ajuste de padding */
         }
         .fc .fc-button-primary:hover, .fc .fc-button-primary:focus, .fc .fc-button-primary:active {
             background-color: #4b5563 !important;
@@ -51,7 +53,14 @@
         }
         .fc .fc-daygrid-day-number, .fc .fc-col-header-cell-cushion {
             color: #d1d5db !important;
+            font-size: 0.8rem; /* Menor em mobile */
         }
+        @media (min-width: 640px) { /* sm breakpoint */
+            .fc .fc-daygrid-day-number, .fc .fc-col-header-cell-cushion {
+                 font-size: 0.9rem;
+            }
+        }
+
         .fc-theme-standard .fc-list-day-text, .fc-theme-standard .fc-list-day-side-text {
              color: #d1d5db !important;
         }
@@ -60,14 +69,14 @@
         }
         .fc-event {
             border: 1px solid #0a0a0a !important; /* Darker border for events */
-            font-size: 0.8em;
+            font-size: 0.75em; /* Mais legível em mobile */
             cursor: pointer; /* Indica que o evento é clicável */
         }
         .fc-daygrid-day.fc-day-today {
             background-color: rgba(75, 85, 99, 0.3) !important; /* bg-gray-600 with opacity */
         }
-        .fc-day.fc-daygrid-day.calendar-day-selected { /* Estilo para o dia selecionado no calendário */
-            background-color: rgba(99, 102, 241, 0.2) !important; /* Exemplo: indigo-500 com opacidade */
+        .fc-day.fc-daygrid-day.calendar-day-selected { 
+            background-color: rgba(99, 102, 241, 0.2) !important; 
         }
         .fc-event-main {
             padding: 2px 4px;
@@ -77,17 +86,24 @@
             overflow: hidden;
             text-overflow: ellipsis;
         }
-        /* Ensure modals can scroll if content is too long */
         .modal-content {
             max-height: 90vh;
             overflow-y: auto;
         }
         .countdown-timer, .tracked-time-display {
-            font-size: 0.85em; /* Slightly smaller */
+            font-size: 0.8em; 
             font-weight: 500;
-            padding: 3px 8px; /* More padding */
-            border-radius: 6px; /* More rounded */
-            margin-left: 8px; /* Space from edit button */
+            padding: 2px 6px; 
+            border-radius: 4px; 
+            margin-left: 0.25rem; /* Reduzir margem em mobile */
+        }
+        @media (min-width: 640px) { /* sm breakpoint */
+            .countdown-timer, .tracked-time-display {
+                font-size: 0.85em;
+                padding: 3px 8px;
+                border-radius: 6px;
+                margin-left: 8px;
+            }
         }
         .pulsate {
             animation: pulsateAnimation 1.5s infinite ease-in-out;
@@ -100,62 +116,102 @@
         .day-of-week-checkbox-group label {
             display: inline-flex;
             align-items: center;
-            margin-right: 10px;
+            margin-right: 8px; /* Ajuste para mobile */
+            font-size: 0.875rem; /* text-sm */
             cursor: pointer;
         }
         .day-of-week-checkbox-group input[type="checkbox"] {
-            margin-right: 4px;
+            margin-right: 3px;
              accent-color: #6366f1; /* Indigo */
         }
+         @media (min-width: 640px) { /* sm breakpoint */
+            .day-of-week-checkbox-group label {
+                margin-right: 10px;
+                font-size: inherit;
+            }
+             .day-of-week-checkbox-group input[type="checkbox"] {
+                margin-right: 4px;
+            }
+        }
         .completed-tasks-container {
-            max-height: 300px; /* Altura máxima antes de rolar */
+            max-height: 250px; /* Reduzir altura em mobile */
             overflow-y: auto;
+        }
+         @media (min-width: 768px) { /* md breakpoint */
+            .completed-tasks-container {
+                max-height: 300px;
+            }
         }
         /* Estilos para o pop-up de ações rápidas do calendário */
         #calendarEventQuickActions {
             position: absolute;
-            background-color: #1f2937; /* bg-gray-800 */
-            border: 1px solid #4b5563; /* border-gray-600 */
-            border-radius: 0.5rem; /* rounded-lg */
-            padding: 0.75rem; /* p-3 */
-            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); /* shadow-xl */
-            z-index: 1050; /* Acima do FullCalendar, mas abaixo de outros modais principais */
-            min-width: 220px; /* Aumentar um pouco a largura mínima */
+            background-color: #1f2937; 
+            border: 1px solid #4b5563; 
+            border-radius: 0.5rem; 
+            padding: 0.75rem; 
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05); 
+            z-index: 1050; 
+            min-width: 200px; /* Ajustado para mobile */
         }
         #calendarEventQuickActions button {
-            display: flex; /* Para alinhar ícone e texto */
-            align-items: center; /* Alinhar ícone e texto verticalmente */
+            display: flex; 
+            align-items: center; 
             width: 100%;
             text-align: left;
-            padding: 0.5rem 0.75rem; /* py-2 px-3 */
-            margin-bottom: 0.5rem; /* space-y-2 */
-            font-size: 0.875rem; /* text-sm */
-            color: #e5e7eb; /* text-gray-200 */
-            border-radius: 0.375rem; /* rounded-md */
+            padding: 0.5rem 0.75rem; 
+            margin-bottom: 0.5rem; 
+            font-size: 0.875rem; 
+            color: #e5e7eb; 
+            border-radius: 0.375rem; 
         }
-        #calendarEventQuickActions button i { /* Estilo para ícones dentro dos botões */
-            margin-right: 0.5rem; /* Espaço entre ícone e texto */
-            width: 1.25rem; /* Largura fixa para alinhamento */
+        #calendarEventQuickActions button i { 
+            margin-right: 0.5rem; 
+            width: 1.25rem; 
             text-align: center;
         }
         #calendarEventQuickActions button:hover {
-            background-color: #374151; /* hover:bg-gray-700 */
+            background-color: #374151; 
         }
         #calendarEventQuickActions button:last-child {
             margin-bottom: 0;
         }
         #calendarEventQuickActions .quick-action-title {
-            font-size: 1rem; /* text-base */
-            font-weight: 600; /* font-semibold */
-            color: #9ca3af; /* text-gray-400 */
+            font-size: 1rem; 
+            font-weight: 600; 
+            color: #9ca3af; 
             margin-bottom: 0.75rem;
             padding-bottom: 0.5rem;
-            border-bottom: 1px solid #374151; /* border-gray-700 */
-            max-width: 250px; /* Limitar largura do título */
+            border-bottom: 1px solid #374151; 
+            max-width: 250px; 
             overflow: hidden;
             text-overflow: ellipsis;
             white-space: nowrap;
         }
+        /* Ajustes para o cabeçalho em telas menores */
+        header .container {
+            flex-direction: column;
+        }
+        @media (min-width: 640px) { /* sm */
+             header .container {
+                flex-direction: row;
+            }
+        }
+        /* Ajuste para o layout principal em telas menores */
+        main .grid {
+            grid-template-columns: 1fr; /* Coluna única por padrão */
+        }
+        @media (min-width: 1024px) { /* lg */
+             main .grid {
+                grid-template-columns: repeat(3, minmax(0, 1fr)); /* Volta para 3 colunas em telas grandes */
+            }
+            main .lg\\:col-span-1 {
+                grid-column: span 1 / span 1;
+            }
+            main .lg\\:col-span-2 {
+                grid-column: span 2 / span 2;
+            }
+        }
+
 
     </style>
     <!-- FullCalendar CDN -->
@@ -202,8 +258,8 @@
     <div id="agendaSection" class="flex flex-col flex-grow hidden">
         <header class="bg-gray-800 shadow-md p-4 sticky top-0 z-50">
             <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center">
-                <h1 class="text-2xl font-bold text-indigo-400">Minha Agenda Pro</h1>
-                <div class="flex items-center space-x-2 sm:space-x-4 mt-3 sm:mt-0">
+                <h1 class="text-2xl font-bold text-indigo-400 mb-2 sm:mb-0">Minha Agenda Pro</h1>
+                <div class="flex items-center space-x-2 sm:space-x-4">
                     <span id="userEmailDisplay" class="text-xs sm:text-sm text-gray-300 truncate max-w-[150px] sm:max-w-xs" title=""></span>
                     <button id="logoutButton" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-lg shadow-md text-sm font-medium transition-colors">
                         <i class="fas fa-sign-out-alt sm:mr-2"></i><span class="hidden sm:inline">Sair</span>
@@ -212,11 +268,11 @@
             </div>
         </header>
 
-        <main class="flex-grow container mx-auto p-4 md:p-6">
-            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <main class="flex-grow container mx-auto p-3 sm:p-4 md:p-6">
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-6">
                 <!-- Coluna de Controles e Adicionar Tarefa -->
                 <div class="lg:col-span-1 space-y-6">
-                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                    <div class="bg-gray-800 p-4 sm:p-6 rounded-xl shadow-lg">
                         <h2 class="text-xl font-semibold text-indigo-400 mb-4">Adicionar Tarefa</h2>
                         <form id="addTaskForm" class="space-y-4">
                             <div>
@@ -265,7 +321,7 @@
                                 </div>
                                 <div id="taskRecurrenceDaysOfWeekContainer">
                                     <label class="block text-sm font-medium text-gray-300">Repetir nos dias:</label>
-                                    <div id="taskRecurrenceDaysOfWeek" class="mt-1 grid grid-cols-3 sm:grid-cols-4 gap-2 day-of-week-checkbox-group">
+                                    <div id="taskRecurrenceDaysOfWeek" class="mt-1 grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-2 day-of-week-checkbox-group">
                                         <!-- Checkboxes will be inserted here by JS -->
                                     </div>
                                 </div>
@@ -301,7 +357,7 @@
                         </form>
                     </div>
 
-                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                    <div class="bg-gray-800 p-4 sm:p-6 rounded-xl shadow-lg">
                         <h2 class="text-xl font-semibold text-indigo-400 mb-4">Controles e Filtros</h2>
                          <div class="space-y-3">
                             <div>
@@ -323,7 +379,7 @@
                              <button id="clearFiltersButton" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition duration-150 mt-2">Limpar Filtros</button>
                          </div>
                     </div>
-                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                    <div class="bg-gray-800 p-4 sm:p-6 rounded-xl shadow-lg">
                         <h2 class="text-xl font-semibold text-indigo-400 mb-4">Configurações</h2>
                         <button id="openWorkHoursModalButton" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition duration-150 mb-3">
                             <i class="fas fa-clock mr-2"></i>Configurar Expediente
@@ -337,10 +393,10 @@
                 </div>
 
                 <!-- Coluna de Tarefas / Calendário -->
-                <div class="lg:col-span-2 bg-gray-800 p-4 sm:p-6 rounded-xl shadow-lg">
+                <div class="lg:col-span-2 bg-gray-800 p-3 sm:p-4 md:p-6 rounded-xl shadow-lg">
                     <div class="flex flex-col sm:flex-row justify-between items-center mb-4">
-                        <h2 class="text-xl font-semibold text-indigo-400 mb-2 sm:mb-0">
-                            Minhas Tarefas <span id="taskListDateHeader" class="text-base text-gray-400 font-normal"></span>
+                        <h2 class="text-lg sm:text-xl font-semibold text-indigo-400 mb-2 sm:mb-0">
+                            Minhas Tarefas <span id="taskListDateHeader" class="text-sm sm:text-base text-gray-400 font-normal"></span>
                         </h2>
                         <div class="flex space-x-2">
                             <button id="viewToggleList" class="view-toggle-button bg-indigo-600 text-white px-3 py-1.5 rounded-md text-sm" title="Visualizar como Lista"><i class="fas fa-list"></i></button>
@@ -349,15 +405,15 @@
                     </div>
                     
                     <!-- Visualização em Lista -->
-                    <div id="taskListContainer" class="space-y-4 h-[calc(100vh-280px)] sm:h-[calc(100vh-250px)]  overflow-y-auto pr-1">
+                    <div id="taskListContainer" class="space-y-3 sm:space-y-4 h-[calc(100vh-320px)] sm:h-[calc(100vh-280px)]  overflow-y-auto pr-1">
                         <!-- Tarefas ativas e instâncias recorrentes de hoje serão inseridas aqui -->
                         <p class="text-gray-400 text-center py-4">Nenhuma tarefa para exibir.</p> 
                     </div>
 
                      <!-- Seção de Tarefas Concluídas (Colapsável) -->
-                    <div id="completedTasksSection" class="mt-8">
-                        <button id="toggleCompletedTasksButton" class="w-full text-left text-lg font-semibold text-indigo-300 hover:text-indigo-200 p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex justify-between items-center">
-                            <span>Tarefas Concluídas <span id="completedTasksDateHeader" class="text-base text-gray-400 font-normal"></span></span>
+                    <div id="completedTasksSection" class="mt-6 sm:mt-8">
+                        <button id="toggleCompletedTasksButton" class="w-full text-left text-md sm:text-lg font-semibold text-indigo-300 hover:text-indigo-200 p-2 sm:p-3 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex justify-between items-center">
+                            <span>Tarefas Concluídas <span id="completedTasksDateHeader" class="text-sm sm:text-base text-gray-400 font-normal"></span></span>
                             <i id="completedTasksCaret" class="fas fa-chevron-down transition-transform"></i>
                         </button>
                         <div id="completedTasksListContainer" class="hidden mt-2 space-y-3 p-3 bg-gray-700/50 rounded-b-lg completed-tasks-container">
@@ -378,12 +434,12 @@
 
     <!-- Modal Editar Tarefa -->
     <div id="editTaskModal" class="fixed inset-0 modal-overlay flex items-center justify-center z-[900] hidden p-4">
-        <div class="modal-content p-6 rounded-xl shadow-2xl w-full max-w-lg">
-            <div class="flex justify-between items-center mb-6">
-                <h3 class="text-2xl font-bold text-indigo-400">Editar Tarefa</h3>
+        <div class="modal-content p-4 sm:p-6 rounded-xl shadow-2xl w-full max-w-md sm:max-w-lg">
+            <div class="flex justify-between items-center mb-4 sm:mb-6">
+                <h3 class="text-xl sm:text-2xl font-bold text-indigo-400">Editar Tarefa</h3>
                 <button id="closeEditTaskModalButton" class="text-gray-400 hover:text-gray-200 text-2xl p-1 leading-none">&times;</button>
             </div>
-            <form id="editTaskForm" class="space-y-4">
+            <form id="editTaskForm" class="space-y-3 sm:space-y-4">
                 <input type="hidden" id="editTaskId">
                 <input type="hidden" id="editTaskInstanceDate"> 
                 <div>
@@ -431,7 +487,7 @@
                     </div>
                     <div id="editTaskRecurrenceDaysOfWeekContainer">
                         <label class="block text-sm font-medium text-gray-300">Repetir nos dias:</label>
-                        <div id="editTaskRecurrenceDaysOfWeek" class="mt-1 grid grid-cols-3 sm:grid-cols-4 gap-2 day-of-week-checkbox-group">
+                        <div id="editTaskRecurrenceDaysOfWeek" class="mt-1 grid grid-cols-2 xs:grid-cols-3 sm:grid-cols-4 gap-2 day-of-week-checkbox-group">
                             <!-- Checkboxes will be inserted here by JS -->
                         </div>
                     </div>
@@ -472,9 +528,9 @@
                         <i class="fas fa-calendar-day mr-2"></i>Criar Instância Única para Hoje (Outro Horário)
                     </button>
                 </div>
-                <div class="flex justify-end space-x-3 pt-3">
-                    <button type="button" id="triggerDeleteTaskButton" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm">Excluir</button>
-                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm">Salvar Alterações</button>
+                <div class="flex flex-col sm:flex-row justify-end space-y-2 sm:space-y-0 sm:space-x-3 pt-3">
+                    <button type="button" id="triggerDeleteTaskButton" class="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm">Excluir</button>
+                    <button type="submit" class="w-full sm:w-auto bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm">Salvar Alterações</button>
                 </div>
             </form>
         </div>
@@ -618,7 +674,7 @@
         let currentConfirmAction = null; 
         let taskToDeleteId = null; 
         let instanceDateToDelete = null; 
-        let selectedDateForList = new Date().toISOString().split('T')[0]; // Data selecionada para a lista de tarefas
+        let selectedDateForList = new Date().toISOString().split('T')[0]; 
 
 
         const daysOfWeekMap = [
@@ -936,7 +992,7 @@
                 startTime: startTime, description: taskDescriptionInput.value.trim() || null, status: 'pending', 
                 userId: currentUserId, createdAt: serverTimestamp(), updatedAt: serverTimestamp(),
                 remainingSeconds: estimatedTime * 60, lastStartTime: null, 
-                timeTrackedSeconds: 0, isTrackingTime: false, lastTrackingStartTime: null, 
+                timeTrackedSeconds: 0, isTrackingTime: false, lastTrackingStartTime: null, // Cronômetro
                 completedDates: [], skippedDates: [], 
                 isRecurring: isRecurring, 
                 recurrenceType: null, recurrenceDaysOfWeek: null, recurrenceStartDate: null, recurrenceInterval: null, recurrenceEndDate: null,
@@ -2463,7 +2519,7 @@
 
             const cloneAndReplace = (button) => {
                 let newButton = button.cloneNode(true);
-                if(button.parentNode) { // Verifica se o botão ainda está no DOM
+                if(button.parentNode) { 
                    button.parentNode.replaceChild(newButton, button);
                 }
                 return newButton;
