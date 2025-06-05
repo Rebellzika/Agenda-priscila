@@ -1,0 +1,1237 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Minha Nova Agenda Pro</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body, html {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827; /* Dark background */
+            color: #e5e7eb; /* Light text */
+        }
+        .modal-overlay { background-color: rgba(0, 0, 0, 0.75); }
+        .modal-content { background-color: #1f2937; animation: fadeInScaleModal 0.3s ease-out forwards; }
+        @keyframes fadeInScaleModal {
+            from { opacity: 0; transform: translateY(20px) scale(0.98); }
+            to { opacity: 1; transform: translateY(0) scale(1); }
+        }
+        .toast-container { position: fixed; top: 1.5rem; right: 1.5rem; z-index: 1000; }
+        .toast { animation: slideInRightToast 0.4s ease-out forwards, fadeOutToast 0.4s ease-in forwards 3.6s; }
+        @keyframes slideInRightToast { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes fadeOutToast { from { opacity: 1; } to { opacity: 0; transform: translateX(120%);} }
+
+        /* Custom scrollbar for dark theme */
+        ::-webkit-scrollbar { width: 10px; height: 10px; }
+        ::-webkit-scrollbar-track { background: #1f2937; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb { background: #4b5563; border-radius: 10px; }
+        ::-webkit-scrollbar-thumb:hover { background: #6b7280; }
+
+        /* Date picker icon color for dark theme */
+        input[type="date"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.8) brightness(100%);
+        }
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.8) brightness(100%);
+        }
+        .fc .fc-button-primary {
+            background-color: #374151 !important;
+            border-color: #4b5563 !important;
+            color: #e5e7eb !important;
+        }
+        .fc .fc-button-primary:hover {
+            background-color: #4b5563 !important;
+        }
+        .fc .fc-daygrid-day-number, .fc .fc-col-header-cell-cushion {
+            color: #d1d5db !important;
+        }
+        .fc-theme-standard .fc-list-day-text, .fc-theme-standard .fc-list-day-side-text {
+             color: #d1d5db !important;
+        }
+        .fc .fc-list-event:hover td {
+            background-color: #374151 !important;
+        }
+        .fc-event {
+            border: 1px solid #000 !important;
+        }
+        .fc-daygrid-day.fc-day-today {
+            background-color: rgba(75, 85, 99, 0.3) !important; /* bg-gray-600 with opacity */
+        }
+    </style>
+    <!-- FullCalendar CDN -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <script src='https://cdn.jsdelivr.net/npm/@fullcalendar/core/locales/pt-br.global.js'></script>
+
+</head>
+<body class="flex flex-col min-h-screen">
+
+    <!-- Overlay de Carregamento Global -->
+    <div id="loadingOverlay" class="fixed inset-0 bg-black bg-opacity-80 flex items-center justify-center z-[1000] transition-opacity duration-300">
+        <div class="flex flex-col items-center">
+            <i class="fas fa-circle-notch fa-spin fa-3x text-indigo-400"></i>
+            <p class="mt-4 text-indigo-300 text-lg font-medium">Carregando...</p>
+        </div>
+    </div>
+
+    <!-- Container para Toasts (Notificações) -->
+    <div id="toastContainer" class="toast-container"></div>
+
+    <!-- Seção de Autenticação -->
+    <div id="authSection" class="flex flex-grow items-center justify-center p-4">
+        <div class="bg-gray-800 p-8 sm:p-10 rounded-xl shadow-2xl w-full max-w-md transform transition-all duration-300">
+            <h2 class="text-3xl font-bold text-center text-indigo-400 mb-8">Agenda Pro</h2>
+            <div class="space-y-6">
+                <div>
+                    <label for="email" class="block text-sm font-medium text-gray-300 mb-1">Email</label>
+                    <input type="email" id="email" autocomplete="email" class="mt-1 block w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-white placeholder-gray-400" placeholder="seu.email@exemplo.com">
+                </div>
+                <div>
+                    <label for="password" class="block text-sm font-medium text-gray-300 mb-1">Senha</label>
+                    <input type="password" id="password" autocomplete="current-password" class="mt-1 block w-full px-4 py-3 bg-gray-700 border border-gray-600 rounded-lg shadow-sm focus:ring-indigo-500 focus:border-indigo-500 text-white placeholder-gray-400" placeholder="Sua senha">
+                </div>
+                <button id="authButton" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white py-3 px-4 rounded-lg shadow-md focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 focus:ring-offset-gray-800 transition-all duration-150 ease-in-out font-semibold text-lg transform hover:scale-105">
+                    Entrar
+                </button>
+                <p class="text-center text-sm text-gray-400">
+                    Não tem conta? <button id="switchToRegisterButton" class="font-medium text-indigo-400 hover:text-indigo-300">Registre-se</button>
+                </p>
+            </div>
+            <p id="authError" class="text-red-400 text-sm mt-4 text-center hidden"></p>
+        </div>
+    </div>
+
+    <!-- Seção Principal da Agenda -->
+    <div id="agendaSection" class="flex flex-col flex-grow hidden">
+        <header class="bg-gray-800 shadow-md p-4">
+            <div class="container mx-auto flex flex-col sm:flex-row justify-between items-center">
+                <h1 class="text-2xl font-bold text-indigo-400">Minha Agenda Pro</h1>
+                <div class="flex items-center space-x-4 mt-3 sm:mt-0">
+                    <span id="userEmailDisplay" class="text-sm text-gray-300"></span>
+                    <button id="logoutButton" class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg shadow-md text-sm font-medium">
+                        <i class="fas fa-sign-out-alt mr-2"></i>Sair
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <main class="flex-grow container mx-auto p-4 md:p-6">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <!-- Coluna de Controles e Adicionar Tarefa -->
+                <div class="md:col-span-1 space-y-6">
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <h2 class="text-xl font-semibold text-indigo-400 mb-4">Adicionar Tarefa</h2>
+                        <form id="addTaskForm" class="space-y-4">
+                            <div>
+                                <label for="taskTitle" class="block text-sm font-medium text-gray-300">Título</label>
+                                <input type="text" id="taskTitle" required class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                            </div>
+                             <div>
+                                <label for="taskClient" class="block text-sm font-medium text-gray-300">Cliente (Opcional)</label>
+                                <input type="text" id="taskClient" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                            </div>
+                            <div>
+                                <label for="taskType" class="block text-sm font-medium text-gray-300">Tipo (Opcional)</label>
+                                <input type="text" id="taskType" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white" placeholder="Ex: Reunião, Desenvolvimento">
+                            </div>
+                            <div>
+                                <label for="taskPriority" class="block text-sm font-medium text-gray-300">Prioridade</label>
+                                <select id="taskPriority" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                                    <option value="low" class="bg-gray-700">Baixa</option>
+                                    <option value="medium" selected class="bg-gray-700">Média</option>
+                                    <option value="high" class="bg-gray-700">Alta</option>
+                                    <option value="urgent" class="bg-gray-700">Urgente</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="taskEstimatedTime" class="block text-sm font-medium text-gray-300">Tempo Estimado (min)</label>
+                                <input type="number" id="taskEstimatedTime" min="0" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                            </div>
+                            <div class="flex items-center">
+                                <input type="checkbox" id="taskIsDaily" class="h-4 w-4 text-indigo-600 border-gray-500 rounded focus:ring-indigo-500">
+                                <label for="taskIsDaily" class="ml-2 block text-sm text-gray-300">Tarefa Diária</label>
+                            </div>
+                            <div id="dateSpecificFields">
+                                <div>
+                                    <label for="taskDueDate" class="block text-sm font-medium text-gray-300">Data</label>
+                                    <input type="date" id="taskDueDate" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                                </div>
+                            </div>
+                            <div>
+                                <label for="taskStartTime" class="block text-sm font-medium text-gray-300">Hora Início</label>
+                                <input type="time" id="taskStartTime" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                            </div>
+                            <div>
+                                <label for="taskDescription" class="block text-sm font-medium text-gray-300">Descrição (Opcional)</label>
+                                <textarea id="taskDescription" rows="3" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white"></textarea>
+                            </div>
+                            <div class="pt-2">
+                                <button type="submit" class="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-semibold py-2.5 px-4 rounded-lg shadow-md transition duration-150 ease-in-out">
+                                    <i class="fas fa-plus-circle mr-2"></i>Adicionar Tarefa
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <h2 class="text-xl font-semibold text-indigo-400 mb-4">Controles e Filtros</h2>
+                         <div class="space-y-3">
+                            <div>
+                                <label for="filterClient" class="block text-sm font-medium text-gray-300">Filtrar por Cliente:</label>
+                                <input type="text" id="filterClient" placeholder="Nome do cliente" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                            </div>
+                             <div>
+                                <label for="filterStatus" class="block text-sm font-medium text-gray-300">Filtrar por Status:</label>
+                                <select id="filterStatus" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                                    <option value="all" class="bg-gray-700">Todos</option>
+                                    <option value="pending" class="bg-gray-700">Pendente</option>
+                                    <option value="in-progress" class="bg-gray-700">Em Andamento</option>
+                                    <option value="paused" class="bg-gray-700">Pausada</option>
+                                    <option value="completed" class="bg-gray-700">Concluída</option>
+                                    <option value="overdue" class="bg-gray-700">Atrasada</option>
+                                </select>
+                            </div>
+                             <button id="applyFiltersButton" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition duration-150">Aplicar Filtros</button>
+                             <button id="clearFiltersButton" class="w-full bg-gray-600 hover:bg-gray-500 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition duration-150 mt-2">Limpar Filtros</button>
+                         </div>
+                    </div>
+                    <div class="bg-gray-800 p-6 rounded-xl shadow-lg">
+                        <h2 class="text-xl font-semibold text-indigo-400 mb-4">Configurações</h2>
+                        <button id="openWorkHoursModalButton" class="w-full bg-teal-600 hover:bg-teal-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm transition duration-150">
+                            <i class="fas fa-clock mr-2"></i>Configurar Expediente
+                        </button>
+                    </div>
+
+                </div>
+
+                <!-- Coluna de Tarefas / Calendário -->
+                <div class="md:col-span-2 bg-gray-800 p-4 sm:p-6 rounded-xl shadow-lg">
+                    <div class="flex justify-between items-center mb-4">
+                        <h2 class="text-xl font-semibold text-indigo-400">Minhas Tarefas</h2>
+                        <div class="flex space-x-2">
+                            <button id="viewToggleList" class="view-toggle-button bg-indigo-600 text-white px-3 py-1.5 rounded-md text-sm" title="Visualizar como Lista"><i class="fas fa-list"></i></button>
+                            <button id="viewToggleCalendar" class="view-toggle-button bg-gray-600 hover:bg-gray-500 text-white px-3 py-1.5 rounded-md text-sm" title="Visualizar como Calendário"><i class="fas fa-calendar-alt"></i></button>
+                        </div>
+                    </div>
+                    
+                    <!-- Visualização em Lista -->
+                    <div id="taskListContainer" class="space-y-4 h-[70vh] overflow-y-auto">
+                        <!-- Tarefas serão inseridas aqui -->
+                        <p class="text-gray-400 text-center py-4">Nenhuma tarefa para exibir.</p> 
+                    </div>
+
+                    <!-- Visualização em Calendário -->
+                    <div id="calendarContainer" class="hidden h-[70vh]">
+                        <!-- FullCalendar será inserido aqui -->
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modal Editar Tarefa -->
+    <div id="editTaskModal" class="fixed inset-0 modal-overlay flex items-center justify-center z-[900] hidden p-4">
+        <div class="modal-content p-6 rounded-xl shadow-2xl w-full max-w-lg">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-indigo-400">Editar Tarefa</h3>
+                <button id="closeEditTaskModalButton" class="text-gray-400 hover:text-gray-200 text-2xl">&times;</button>
+            </div>
+            <form id="editTaskForm" class="space-y-4">
+                <input type="hidden" id="editTaskId">
+                <div>
+                    <label for="editTaskTitle" class="block text-sm font-medium text-gray-300">Título</label>
+                    <input type="text" id="editTaskTitle" required class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                </div>
+                <div>
+                    <label for="editTaskClient" class="block text-sm font-medium text-gray-300">Cliente</label>
+                    <input type="text" id="editTaskClient" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                </div>
+                <div>
+                    <label for="editTaskType" class="block text-sm font-medium text-gray-300">Tipo</label>
+                    <input type="text" id="editTaskType" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                </div>
+                <div>
+                    <label for="editTaskPriority" class="block text-sm font-medium text-gray-300">Prioridade</label>
+                    <select id="editTaskPriority" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                        <option value="low" class="bg-gray-700">Baixa</option>
+                        <option value="medium" class="bg-gray-700">Média</option>
+                        <option value="high" class="bg-gray-700">Alta</option>
+                        <option value="urgent" class="bg-gray-700">Urgente</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="editTaskEstimatedTime" class="block text-sm font-medium text-gray-300">Tempo Estimado (min)</label>
+                    <input type="number" id="editTaskEstimatedTime" min="0" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                </div>
+                 <div class="flex items-center">
+                    <input type="checkbox" id="editTaskIsDaily" class="h-4 w-4 text-indigo-600 border-gray-500 rounded focus:ring-indigo-500">
+                    <label for="editTaskIsDaily" class="ml-2 block text-sm text-gray-300">Tarefa Diária</label>
+                </div>
+                <div id="editDateSpecificFields">
+                    <div>
+                        <label for="editTaskDueDate" class="block text-sm font-medium text-gray-300">Data</label>
+                        <input type="date" id="editTaskDueDate" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                    </div>
+                </div>
+                <div>
+                    <label for="editTaskStartTime" class="block text-sm font-medium text-gray-300">Hora Início</label>
+                    <input type="time" id="editTaskStartTime" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                </div>
+                 <div>
+                    <label for="editTaskStatus" class="block text-sm font-medium text-gray-300">Status</label>
+                    <select id="editTaskStatus" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white">
+                        <option value="pending" class="bg-gray-700">Pendente</option>
+                        <option value="in-progress" class="bg-gray-700">Em Andamento</option>
+                        <option value="paused" class="bg-gray-700">Pausada</option>
+                        <option value="completed" class="bg-gray-700">Concluída</option>
+                         <option value="overdue" class="bg-gray-700">Atrasada</option>
+                    </select>
+                </div>
+                <div>
+                    <label for="editTaskDescription" class="block text-sm font-medium text-gray-300">Descrição</label>
+                    <textarea id="editTaskDescription" rows="3" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm py-2 px-3 focus:ring-indigo-500 focus:border-indigo-500 text-white"></textarea>
+                </div>
+                <div class="flex justify-end space-x-3 pt-3">
+                    <button type="button" id="deleteTaskButton" class="bg-red-600 hover:bg-red-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm">Excluir</button>
+                    <button type="submit" class="bg-indigo-600 hover:bg-indigo-700 text-white font-medium py-2 px-4 rounded-lg shadow-sm">Salvar Alterações</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal Configurar Expediente -->
+    <div id="workHoursModal" class="fixed inset-0 modal-overlay flex items-center justify-center z-[900] hidden p-4">
+        <div class="modal-content p-6 rounded-xl shadow-2xl w-full max-w-2xl">
+            <div class="flex justify-between items-center mb-6">
+                <h3 class="text-2xl font-bold text-indigo-400">Configurar Expediente</h3>
+                <button id="closeWorkHoursModalButton" class="text-gray-400 hover:text-gray-200 text-2xl">&times;</button>
+            </div>
+            <form id="workHoursForm" class="space-y-3">
+                <p class="text-sm text-gray-400 mb-3">Defina seus horários de trabalho. Deixe em branco se não houver expediente no período.</p>
+                <div id="workHoursInputsContainer" class="space-y-4 max-h-[60vh] overflow-y-auto pr-2">
+                    <!-- Inputs de expediente serão gerados aqui -->
+                </div>
+                <div class="flex justify-end pt-4">
+                    <button type="submit" class="bg-teal-600 hover:bg-teal-700 text-white font-medium py-2.5 px-5 rounded-lg shadow-sm">Salvar Expediente</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+
+    <!-- Firebase SDKs -->
+    <script type="module">
+        // Importações do Firebase
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { 
+            getAuth, 
+            createUserWithEmailAndPassword, 
+            signInWithEmailAndPassword, 
+            signOut, 
+            onAuthStateChanged 
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { 
+            getFirestore, 
+            doc, 
+            setDoc, 
+            addDoc, 
+            getDoc, 
+            updateDoc, 
+            deleteDoc, 
+            collection, 
+            query, 
+            where, 
+            onSnapshot,
+            serverTimestamp,
+            orderBy,
+            writeBatch
+        } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // --- Configuração do Firebase ---
+        // ATENÇÃO: Substitua pela sua configuração real do Firebase ou use as variáveis globais se fornecidas pelo ambiente
+        const firebaseConfigFromGlobal = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+        const appIdFromGlobal = typeof __app_id !== 'undefined' ? __app_id : 'default-agenda-pro-app';
+
+        const fallbackFirebaseConfig = {
+            apiKey: "YOUR_API_KEY", // SUBSTITUA
+            authDomain: "YOUR_AUTH_DOMAIN", // SUBSTITUA
+            projectId: "YOUR_PROJECT_ID", // SUBSTITUA
+            storageBucket: "YOUR_STORAGE_BUCKET", // SUBSTITUA
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID", // SUBSTITUA
+            appId: "YOUR_APP_ID" // SUBSTITUA
+        };
+        
+        const finalFirebaseConfig = firebaseConfigFromGlobal || fallbackFirebaseConfig;
+        if (finalFirebaseConfig.apiKey === "YOUR_API_KEY" && !firebaseConfigFromGlobal) {
+            console.warn("Usando configuração de Firebase de fallback. Substitua pelas suas credenciais reais.");
+        }
+
+        let app;
+        let auth;
+        let db;
+        let currentUserId = null;
+        let tasksCollectionRef = null;
+        let workHoursConfigRef = null;
+        let unsubscribeTasks = null;
+        let unsubscribeWorkHours = null;
+        let calendar = null;
+        let currentView = 'list'; // 'list' or 'calendar'
+        let allUserTasks = []; // Cache local das tarefas do usuário
+        let currentFilters = { client: '', status: 'all' };
+
+        try {
+            app = initializeApp(finalFirebaseConfig);
+            auth = getAuth(app);
+            db = getFirestore(app);
+            console.log("Firebase inicializado com sucesso. App ID:", appIdFromGlobal);
+        } catch (error) {
+            console.error("Erro Crítico ao inicializar Firebase:", error);
+            document.getElementById('loadingOverlay').innerHTML = '<p class="text-red-400 text-lg">Erro ao conectar. Verifique o console.</p>';
+            // Não esconder o overlay de loading em caso de erro crítico
+            // showToast("Erro crítico de conexão. Verifique o console.", "error", 10000);
+            alert("Erro crítico ao conectar ao Firebase. Verifique o console para detalhes.");
+        }
+
+
+        // --- Seletores de Elementos da UI ---
+        const loadingOverlay = document.getElementById('loadingOverlay');
+        const toastContainer = document.getElementById('toastContainer');
+        const authSection = document.getElementById('authSection');
+        const emailInput = document.getElementById('email');
+        const passwordInput = document.getElementById('password');
+        const authButton = document.getElementById('authButton');
+        const switchToRegisterButton = document.getElementById('switchToRegisterButton');
+        const authError = document.getElementById('authError');
+        const agendaSection = document.getElementById('agendaSection');
+        const userEmailDisplay = document.getElementById('userEmailDisplay');
+        const logoutButton = document.getElementById('logoutButton');
+        
+        const addTaskForm = document.getElementById('addTaskForm');
+        const taskTitleInput = document.getElementById('taskTitle');
+        const taskClientInput = document.getElementById('taskClient');
+        const taskTypeInput = document.getElementById('taskType');
+        const taskPriorityInput = document.getElementById('taskPriority');
+        const taskEstimatedTimeInput = document.getElementById('taskEstimatedTime');
+        const taskIsDailyCheckbox = document.getElementById('taskIsDaily');
+        const dateSpecificFieldsDiv = document.getElementById('dateSpecificFields');
+        const taskDueDateInput = document.getElementById('taskDueDate');
+        const taskStartTimeInput = document.getElementById('taskStartTime');
+        const taskDescriptionInput = document.getElementById('taskDescription');
+
+        const taskListContainer = document.getElementById('taskListContainer');
+        const calendarContainer = document.getElementById('calendarContainer');
+        const viewToggleListButton = document.getElementById('viewToggleList');
+        const viewToggleCalendarButton = document.getElementById('viewToggleCalendar');
+
+        const editTaskModal = document.getElementById('editTaskModal');
+        const closeEditTaskModalButton = document.getElementById('closeEditTaskModalButton');
+        const editTaskForm = document.getElementById('editTaskForm');
+        const editTaskIdInput = document.getElementById('editTaskId');
+        const editTaskTitleInput = document.getElementById('editTaskTitle');
+        const editTaskClientInput = document.getElementById('editTaskClient');
+        const editTaskTypeInput = document.getElementById('editTaskType');
+        const editTaskPriorityInput = document.getElementById('editTaskPriority');
+        const editTaskEstimatedTimeInput = document.getElementById('editTaskEstimatedTime');
+        const editTaskIsDailyCheckbox = document.getElementById('editTaskIsDaily');
+        const editDateSpecificFieldsDiv = document.getElementById('editDateSpecificFields');
+        const editTaskDueDateInput = document.getElementById('editTaskDueDate');
+        const editTaskStartTimeInput = document.getElementById('editTaskStartTime');
+        const editTaskStatusInput = document.getElementById('editTaskStatus');
+        const editTaskDescriptionInput = document.getElementById('editTaskDescription');
+        const deleteTaskButton = document.getElementById('deleteTaskButton');
+        
+        const openWorkHoursModalButton = document.getElementById('openWorkHoursModalButton');
+        const workHoursModal = document.getElementById('workHoursModal');
+        const closeWorkHoursModalButton = document.getElementById('closeWorkHoursModalButton');
+        const workHoursForm = document.getElementById('workHoursForm');
+        const workHoursInputsContainer = document.getElementById('workHoursInputsContainer');
+
+        const filterClientInput = document.getElementById('filterClient');
+        const filterStatusSelect = document.getElementById('filterStatus');
+        const applyFiltersButton = document.getElementById('applyFiltersButton');
+        const clearFiltersButton = document.getElementById('clearFiltersButton');
+
+
+        // --- Funções Utilitárias ---
+        function showLoadingIndicator() { loadingOverlay.classList.remove('opacity-0', 'pointer-events-none'); loadingOverlay.classList.add('opacity-100');}
+        function hideLoadingIndicator() { loadingOverlay.classList.add('opacity-0', 'pointer-events-none'); }
+
+        function showToast(message, type = 'success', duration = 4000) {
+            const toastElement = document.createElement('div');
+            toastElement.className = `toast p-4 rounded-lg shadow-xl mb-3 flex items-center space-x-3 text-white text-sm font-medium max-w-sm`;
+            let iconHtml = '';
+            let bgColor = '';
+
+            switch (type) {
+                case 'success': bgColor = 'bg-green-600'; iconHtml = '<i class="fas fa-check-circle fa-lg"></i>'; break;
+                case 'error': bgColor = 'bg-red-600'; iconHtml = '<i class="fas fa-times-circle fa-lg"></i>'; break;
+                case 'info': bgColor = 'bg-blue-600'; iconHtml = '<i class="fas fa-info-circle fa-lg"></i>'; break;
+                default: bgColor = 'bg-gray-700'; iconHtml = '<i class="fas fa-bell fa-lg"></i>';
+            }
+            toastElement.classList.add(bgColor);
+            toastElement.innerHTML = `${iconHtml} <span>${message}</span>`;
+            toastContainer.appendChild(toastElement);
+            setTimeout(() => {
+                toastElement.style.animation = 'fadeOutToast 0.4s ease-in forwards';
+                setTimeout(() => toastElement.remove(), 400);
+            }, duration - 400);
+        }
+
+        // --- Lógica de Autenticação ---
+        let isRegistering = false;
+        switchToRegisterButton.addEventListener('click', () => {
+            isRegistering = !isRegistering;
+            authButton.textContent = isRegistering ? 'Registrar' : 'Entrar';
+            switchToRegisterButton.innerHTML = isRegistering ? `Já tem conta? <span class="font-medium text-indigo-400 hover:text-indigo-300">Entre</span>` : `Não tem conta? <span class="font-medium text-indigo-400 hover:text-indigo-300">Registre-se</span>`;
+            authError.classList.add('hidden');
+            authError.textContent = '';
+        });
+
+        authButton.addEventListener('click', async () => {
+            const email = emailInput.value.trim();
+            const password = passwordInput.value.trim();
+            authError.classList.add('hidden');
+            authError.textContent = '';
+
+            if (!email || !password) {
+                authError.textContent = 'Por favor, preencha email e senha.';
+                authError.classList.remove('hidden');
+                return;
+            }
+            if (password.length < 6) {
+                authError.textContent = 'A senha deve ter pelo menos 6 caracteres.';
+                authError.classList.remove('hidden');
+                return;
+            }
+            showLoadingIndicator();
+            try {
+                if (isRegistering) {
+                    await createUserWithEmailAndPassword(auth, email, password);
+                    showToast('Conta registrada com sucesso! Você está logado.', 'success');
+                } else {
+                    await signInWithEmailAndPassword(auth, email, password);
+                    showToast('Login bem-sucedido!', 'success');
+                }
+                // onAuthStateChanged cuidará de mostrar a seção da agenda
+            } catch (error) {
+                console.error("Erro de autenticação:", error);
+                authError.textContent = mapAuthErrorToMessage(error.code);
+                authError.classList.remove('hidden');
+                showToast(mapAuthErrorToMessage(error.code), 'error');
+            } finally {
+                hideLoadingIndicator();
+            }
+        });
+        
+        function mapAuthErrorToMessage(errorCode) {
+            switch (errorCode) {
+                case 'auth/invalid-email': return 'Formato de email inválido.';
+                case 'auth/user-disabled': return 'Este usuário foi desabilitado.';
+                case 'auth/user-not-found': return 'Usuário não encontrado.';
+                case 'auth/wrong-password': return 'Senha incorreta.';
+                case 'auth/email-already-in-use': return 'Este email já está em uso.';
+                case 'auth/weak-password': return 'Senha muito fraca. Use pelo menos 6 caracteres.';
+                default: return 'Ocorreu um erro na autenticação.';
+            }
+        }
+
+        logoutButton.addEventListener('click', async () => {
+            showLoadingIndicator();
+            try {
+                await signOut(auth);
+                showToast('Logout realizado com sucesso.', 'info');
+            } catch (error) {
+                console.error("Erro ao fazer logout:", error);
+                showToast('Erro ao fazer logout.', 'error');
+            } finally {
+                hideLoadingIndicator();
+            }
+        });
+
+        onAuthStateChanged(auth, (user) => {
+            showLoadingIndicator();
+            if (user) {
+                currentUserId = user.uid;
+                userEmailDisplay.textContent = user.email;
+                authSection.classList.add('hidden');
+                agendaSection.classList.remove('hidden');
+                initializeUserSpecificRefs();
+                loadTasks();
+                loadWorkHours();
+                initializeCalendar();
+                setupEventListeners(); // Configurar outros listeners aqui
+            } else {
+                currentUserId = null;
+                authSection.classList.remove('hidden');
+                agendaSection.classList.add('hidden');
+                userEmailDisplay.textContent = '';
+                allUserTasks = []; // Limpar tarefas ao deslogar
+                renderTaskList([]); // Limpar a UI
+                if (calendar) calendar.removeAllEvents(); // Limpar eventos do calendário
+                if (unsubscribeTasks) unsubscribeTasks();
+                if (unsubscribeWorkHours) unsubscribeWorkHours();
+                tasksCollectionRef = null;
+                workHoursConfigRef = null;
+            }
+            hideLoadingIndicator();
+        });
+
+        function initializeUserSpecificRefs() {
+            if (!currentUserId) return;
+            // Coleção de tarefas dentro de uma subcoleção 'agenda' do usuário
+            tasksCollectionRef = collection(db, `artifacts/${appIdFromGlobal}/users/${currentUserId}/agendaTasks`);
+            // Documento de configuração de expediente dentro de uma subcoleção 'config' do usuário
+            workHoursConfigRef = doc(db, `artifacts/${appIdFromGlobal}/users/${currentUserId}/agendaConfig/workHours`);
+        }
+        
+        // --- Lógica de Tarefas (CRUD) ---
+        function getTaskEndTime(startTime, estimatedTimeMinutes) {
+            if (!startTime || !estimatedTimeMinutes) return null;
+            const [hours, minutes] = startTime.split(':').map(Number);
+            const startDate = new Date(0); // Data base
+            startDate.setUTCHours(hours, minutes, 0, 0);
+            startDate.setUTCMinutes(startDate.getUTCMinutes() + parseInt(estimatedTimeMinutes));
+            return `${String(startDate.getUTCHours()).padStart(2, '0')}:${String(startDate.getUTCMinutes()).padStart(2, '0')}`;
+        }
+
+        addTaskForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!tasksCollectionRef) {
+                showToast('Erro: Não foi possível conectar ao banco de dados de tarefas.', 'error');
+                return;
+            }
+            showLoadingIndicator();
+
+            const taskData = {
+                title: taskTitleInput.value.trim(),
+                client: taskClientInput.value.trim() || null,
+                type: taskTypeInput.value.trim() || null,
+                priority: taskPriorityInput.value,
+                estimatedTime: parseInt(taskEstimatedTimeInput.value) || null,
+                isDaily: taskIsDailyCheckbox.checked,
+                dueDate: taskIsDailyCheckbox.checked ? null : (taskDueDateInput.value || null),
+                startTime: taskStartTimeInput.value || null,
+                description: taskDescriptionInput.value.trim() || null,
+                status: 'pending', // default status
+                userId: currentUserId,
+                createdAt: serverTimestamp(),
+                updatedAt: serverTimestamp()
+            };
+            
+            if (!taskData.title) {
+                showToast("O título da tarefa é obrigatório.", "error");
+                hideLoadingIndicator();
+                return;
+            }
+
+            try {
+                await addDoc(tasksCollectionRef, taskData);
+                showToast('Tarefa adicionada com sucesso!', 'success');
+                addTaskForm.reset();
+                taskIsDailyCheckbox.dispatchEvent(new Event('change')); // Resetar visibilidade dos campos de data
+            } catch (error) {
+                console.error("Erro ao adicionar tarefa:", error);
+                showToast('Erro ao adicionar tarefa. Tente novamente.', 'error');
+            } finally {
+                hideLoadingIndicator();
+            }
+        });
+
+        taskIsDailyCheckbox.addEventListener('change', (e) => {
+            dateSpecificFieldsDiv.style.display = e.target.checked ? 'none' : 'block';
+            if(e.target.checked) {
+                taskDueDateInput.value = ''; // Limpar data se for diária
+            }
+        });
+        editTaskIsDailyCheckbox.addEventListener('change', (e) => {
+            editDateSpecificFieldsDiv.style.display = e.target.checked ? 'none' : 'block';
+             if(e.target.checked) {
+                editTaskDueDateInput.value = ''; // Limpar data se for diária
+            }
+        });
+
+
+        function loadTasks() {
+            if (!tasksCollectionRef) return;
+            if (unsubscribeTasks) unsubscribeTasks(); // Cancela listener anterior se houver
+
+            showLoadingIndicator();
+            const q = query(tasksCollectionRef, orderBy("createdAt", "desc"));
+            unsubscribeTasks = onSnapshot(q, (snapshot) => {
+                allUserTasks = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+                applyFiltersAndRenderTasks(); // Aplica filtros e renderiza
+                hideLoadingIndicator();
+            }, (error) => {
+                console.error("Erro ao carregar tarefas:", error);
+                showToast('Erro ao carregar tarefas.', 'error');
+                hideLoadingIndicator();
+            });
+        }
+        
+        function applyFiltersAndRenderTasks() {
+            let filteredTasks = [...allUserTasks];
+
+            const clientFilter = currentFilters.client.toLowerCase();
+            if (clientFilter) {
+                filteredTasks = filteredTasks.filter(task => task.client && task.client.toLowerCase().includes(clientFilter));
+            }
+
+            if (currentFilters.status !== 'all') {
+                filteredTasks = filteredTasks.filter(task => task.status === currentFilters.status);
+            }
+            
+            // Lógica para marcar tarefas como 'overdue' dinamicamente antes de renderizar
+            const now = new Date();
+            filteredTasks = filteredTasks.map(task => {
+                if (task.status === 'pending' || task.status === 'in-progress') {
+                    let taskDateTime;
+                    if (task.dueDate && task.startTime) {
+                        taskDateTime = new Date(`${task.dueDate}T${task.startTime}`);
+                    } else if (task.dueDate) { // Se só tem data, considera o fim do dia
+                         taskDateTime = new Date(`${task.dueDate}T23:59:59`);
+                    }
+                    
+                    if (taskDateTime && taskDateTime < now) {
+                        return { ...task, status: 'overdue' }; // Não salva no DB, apenas para display
+                    }
+                }
+                return task;
+            });
+
+
+            if (currentView === 'list') {
+                renderTaskList(filteredTasks);
+            } else if (currentView === 'calendar' && calendar) {
+                renderCalendarEvents(filteredTasks);
+            }
+        }
+        
+        applyFiltersButton.addEventListener('click', () => {
+            currentFilters.client = filterClientInput.value.trim();
+            currentFilters.status = filterStatusSelect.value;
+            applyFiltersAndRenderTasks();
+        });
+
+        clearFiltersButton.addEventListener('click', () => {
+            filterClientInput.value = '';
+            filterStatusSelect.value = 'all';
+            currentFilters.client = '';
+            currentFilters.status = 'all';
+            applyFiltersAndRenderTasks();
+        });
+
+
+        function renderTaskList(tasks) {
+            taskListContainer.innerHTML = '';
+            if (tasks.length === 0) {
+                taskListContainer.innerHTML = '<p class="text-gray-400 text-center py-4">Nenhuma tarefa para exibir com os filtros atuais.</p>';
+                return;
+            }
+
+            // Agrupar por data para tarefas não diárias, e tarefas diárias no topo ou separadas
+            const dailyTasks = tasks.filter(t => t.isDaily);
+            const nonDailyTasks = tasks.filter(t => !t.isDaily);
+
+            const groupedTasks = nonDailyTasks.reduce((acc, task) => {
+                const dateKey = task.dueDate || 'Sem Data';
+                if (!acc[dateKey]) acc[dateKey] = [];
+                acc[dateKey].push(task);
+                return acc;
+            }, {});
+            
+            const sortedDateKeys = Object.keys(groupedTasks).sort((a,b) => {
+                if (a === 'Sem Data') return 1;
+                if (b === 'Sem Data') return -1;
+                return new Date(a) - new Date(b);
+            });
+
+            // Renderizar tarefas diárias primeiro
+            if (dailyTasks.length > 0) {
+                const dailyHeader = document.createElement('h3');
+                dailyHeader.className = 'text-lg font-semibold text-indigo-300 mt-4 mb-2 px-1';
+                dailyHeader.textContent = 'Tarefas Diárias';
+                taskListContainer.appendChild(dailyHeader);
+                dailyTasks.sort((a,b) => (a.startTime || "00:00").localeCompare(b.startTime || "00:00"))
+                          .forEach(task => taskListContainer.appendChild(createTaskElement(task)));
+            }
+
+            // Renderizar tarefas agrupadas por data
+            sortedDateKeys.forEach(dateKey => {
+                const dateHeader = document.createElement('h3');
+                dateHeader.className = 'text-lg font-semibold text-indigo-300 mt-4 mb-2 px-1';
+                const dateObj = new Date(dateKey + 'T00:00:00'); // Adiciona T00:00:00 para tratar como local
+                dateHeader.textContent = dateKey === 'Sem Data' ? 'Sem Data Definida' : dateObj.toLocaleDateString('pt-BR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+                taskListContainer.appendChild(dateHeader);
+                
+                groupedTasks[dateKey]
+                    .sort((a,b) => (a.startTime || "00:00").localeCompare(b.startTime || "00:00"))
+                    .forEach(task => taskListContainer.appendChild(createTaskElement(task)));
+            });
+        }
+
+        function createTaskElement(task) {
+            const taskElement = document.createElement('div');
+            taskElement.className = `p-4 rounded-lg shadow-md border-l-4 flex flex-col space-y-2 ${getPriorityBorderColor(task.priority)} ${getStatusBgColor(task.status)}`;
+            taskElement.dataset.taskId = task.id;
+
+            const endTime = task.startTime && task.estimatedTime ? getTaskEndTime(task.startTime, task.estimatedTime) : null;
+            const timeDisplay = task.startTime ? `${task.startTime}${endTime ? ' - ' + endTime : ''}${task.estimatedTime ? ' ('+task.estimatedTime+' min)' : ''}` : (task.estimatedTime ? `(${task.estimatedTime} min)` : 'Horário não definido');
+            
+            let statusText = task.status;
+            switch(task.status) {
+                case 'pending': statusText = 'Pendente'; break;
+                case 'in-progress': statusText = 'Em Andamento'; break;
+                case 'paused': statusText = 'Pausada'; break;
+                case 'completed': statusText = 'Concluída'; break;
+                case 'overdue': statusText = 'Atrasada'; break;
+            }
+
+            taskElement.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <h4 class="text-lg font-semibold text-gray-100">${task.title}</h4>
+                    <button class="edit-task-btn text-gray-400 hover:text-indigo-300 text-sm p-1" title="Editar Tarefa">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                </div>
+                ${task.client ? `<p class="text-sm text-gray-300"><i class="fas fa-user-tie mr-2 text-gray-400"></i>Cliente: ${task.client}</p>` : ''}
+                ${task.type ? `<p class="text-sm text-gray-300"><i class="fas fa-tag mr-2 text-gray-400"></i>Tipo: ${task.type}</p>` : ''}
+                <p class="text-sm text-gray-300"><i class="fas fa-clock mr-2 text-gray-400"></i>${timeDisplay}</p>
+                ${task.isDaily ? '<p class="text-sm text-indigo-300"><i class="fas fa-redo-alt mr-2"></i>Tarefa Diária</p>' : (task.dueDate ? `<p class="text-sm text-gray-300"><i class="fas fa-calendar-day mr-2 text-gray-400"></i>Data: ${new Date(task.dueDate+'T00:00:00').toLocaleDateString('pt-BR')}</p>` : '')}
+                <p class="text-sm text-gray-300"><i class="fas fa-info-circle mr-2 text-gray-400"></i>Status: <span class="font-medium">${statusText}</span></p>
+                ${task.description ? `<p class="text-xs text-gray-400 pt-1 border-t border-gray-700 mt-1">${task.description}</p>` : ''}
+                 <div class="task-actions mt-2 flex space-x-2">
+                    ${task.status !== 'completed' ? `<button class="complete-task-btn text-xs bg-green-600 hover:bg-green-700 text-white py-1 px-2 rounded"><i class="fas fa-check mr-1"></i>Concluir</button>` : ''}
+                    ${task.status === 'pending' ? `<button class="start-task-btn text-xs bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded"><i class="fas fa-play mr-1"></i>Iniciar</button>` : ''}
+                    ${task.status === 'in-progress' ? `<button class="pause-task-btn text-xs bg-yellow-600 hover:bg-yellow-700 text-white py-1 px-2 rounded"><i class="fas fa-pause mr-1"></i>Pausar</button>` : ''}
+                     ${task.status === 'paused' ? `<button class="resume-task-btn text-xs bg-blue-600 hover:bg-blue-700 text-white py-1 px-2 rounded"><i class="fas fa-play mr-1"></i>Retomar</button>` : ''}
+                </div>
+            `;
+            
+            taskElement.querySelector('.edit-task-btn').addEventListener('click', () => openEditModalWithTask(task));
+            
+            const completeBtn = taskElement.querySelector('.complete-task-btn');
+            if (completeBtn) completeBtn.addEventListener('click', (e) => { e.stopPropagation(); updateTaskStatus(task.id, 'completed'); });
+            
+            const startBtn = taskElement.querySelector('.start-task-btn');
+            if (startBtn) startBtn.addEventListener('click', (e) => { e.stopPropagation(); updateTaskStatus(task.id, 'in-progress'); });
+
+            const pauseBtn = taskElement.querySelector('.pause-task-btn');
+            if (pauseBtn) pauseBtn.addEventListener('click', (e) => { e.stopPropagation(); updateTaskStatus(task.id, 'paused'); });
+            
+            const resumeBtn = taskElement.querySelector('.resume-task-btn');
+            if (resumeBtn) resumeBtn.addEventListener('click', (e) => { e.stopPropagation(); updateTaskStatus(task.id, 'in-progress'); });
+
+            return taskElement;
+        }
+        
+        async function updateTaskStatus(taskId, newStatus) {
+            if (!tasksCollectionRef) return;
+            showLoadingIndicator();
+            const taskRef = doc(tasksCollectionRef, taskId);
+            try {
+                await updateDoc(taskRef, { status: newStatus, updatedAt: serverTimestamp() });
+                showToast('Status da tarefa atualizado!', 'success');
+            } catch (error) {
+                console.error("Erro ao atualizar status da tarefa:", error);
+                showToast('Erro ao atualizar status.', 'error');
+            } finally {
+                hideLoadingIndicator();
+            }
+        }
+
+
+        function getPriorityBorderColor(priority) {
+            switch (priority) {
+                case 'urgent': return 'border-red-500';
+                case 'high': return 'border-orange-500';
+                case 'medium': return 'border-yellow-500';
+                case 'low': return 'border-blue-500';
+                default: return 'border-gray-600';
+            }
+        }
+        function getPriorityDotColor(priority) { // For FullCalendar
+            switch (priority) {
+                case 'urgent': return '#ef4444'; // red-500
+                case 'high': return '#f97316'; // orange-500
+                case 'medium': return '#eab308'; // yellow-500
+                case 'low': return '#3b82f6'; // blue-500
+                default: return '#6b7280'; // gray-500
+            }
+        }
+
+        function getStatusBgColor(status) {
+            switch (status) {
+                case 'pending': return 'bg-gray-700 hover:bg-gray-600';
+                case 'in-progress': return 'bg-blue-700 hover:bg-blue-600';
+                case 'paused': return 'bg-yellow-700 hover:bg-yellow-600';
+                case 'completed': return 'bg-green-700 hover:bg-green-600 opacity-80';
+                case 'overdue': return 'bg-red-700 hover:bg-red-600';
+                default: return 'bg-gray-750 hover:bg-gray-650';
+            }
+        }
+
+        function openEditModalWithTask(task) {
+            editTaskIdInput.value = task.id;
+            editTaskTitleInput.value = task.title;
+            editTaskClientInput.value = task.client || '';
+            editTaskTypeInput.value = task.type || '';
+            editTaskPriorityInput.value = task.priority;
+            editTaskEstimatedTimeInput.value = task.estimatedTime || '';
+            editTaskIsDailyCheckbox.checked = task.isDaily;
+            editTaskDueDateInput.value = task.isDaily ? '' : (task.dueDate || '');
+            editTaskStartTimeInput.value = task.startTime || '';
+            editTaskStatusInput.value = task.status;
+            editTaskDescriptionInput.value = task.description || '';
+
+            editTaskIsDailyCheckbox.dispatchEvent(new Event('change')); // Atualizar visibilidade
+            editTaskModal.classList.remove('hidden');
+        }
+
+        closeEditTaskModalButton.addEventListener('click', () => {
+            editTaskModal.classList.add('hidden');
+        });
+
+        editTaskForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!tasksCollectionRef) return;
+            
+            const taskId = editTaskIdInput.value;
+            if (!taskId) {
+                showToast('Erro: ID da tarefa não encontrado para edição.', 'error');
+                return;
+            }
+            showLoadingIndicator();
+
+            const updatedData = {
+                title: editTaskTitleInput.value.trim(),
+                client: editTaskClientInput.value.trim() || null,
+                type: editTaskTypeInput.value.trim() || null,
+                priority: editTaskPriorityInput.value,
+                estimatedTime: parseInt(editTaskEstimatedTimeInput.value) || null,
+                isDaily: editTaskIsDailyCheckbox.checked,
+                dueDate: editTaskIsDailyCheckbox.checked ? null : (editTaskDueDateInput.value || null),
+                startTime: editTaskStartTimeInput.value || null,
+                status: editTaskStatusInput.value,
+                description: editTaskDescriptionInput.value.trim() || null,
+                updatedAt: serverTimestamp()
+            };
+            
+            if (!updatedData.title) {
+                showToast("O título da tarefa é obrigatório.", "error");
+                hideLoadingIndicator();
+                return;
+            }
+
+            const taskRef = doc(tasksCollectionRef, taskId);
+            try {
+                await updateDoc(taskRef, updatedData);
+                showToast('Tarefa atualizada com sucesso!', 'success');
+                editTaskModal.classList.add('hidden');
+            } catch (error) {
+                console.error("Erro ao atualizar tarefa:", error);
+                showToast('Erro ao atualizar tarefa. Tente novamente.', 'error');
+            } finally {
+                hideLoadingIndicator();
+            }
+        });
+
+        deleteTaskButton.addEventListener('click', async () => {
+            if (!tasksCollectionRef) return;
+            const taskId = editTaskIdInput.value;
+            if (!taskId) {
+                showToast('Erro: ID da tarefa não encontrado para exclusão.', 'error');
+                return;
+            }
+
+            const confirmDelete = confirm('Tem certeza que deseja excluir esta tarefa? Esta ação não pode ser desfeita.');
+            if (!confirmDelete) return;
+
+            showLoadingIndicator();
+            const taskRef = doc(tasksCollectionRef, taskId);
+            try {
+                await deleteDoc(taskRef);
+                showToast('Tarefa excluída com sucesso!', 'success');
+                editTaskModal.classList.add('hidden');
+            } catch (error) {
+                console.error("Erro ao excluir tarefa:", error);
+                showToast('Erro ao excluir tarefa. Tente novamente.', 'error');
+            } finally {
+                hideLoadingIndicator();
+            }
+        });
+
+        // --- Lógica do Calendário (FullCalendar) ---
+        function initializeCalendar() {
+            if (calendar) calendar.destroy(); // Destruir instância anterior se houver
+            
+            const calendarEl = document.getElementById('calendarContainer');
+            calendar = new FullCalendar.Calendar(calendarEl, {
+                locale: 'pt-br',
+                initialView: 'dayGridMonth', // Pode ser 'timeGridWeek', 'listWeek', etc.
+                headerToolbar: {
+                    left: 'prev,next today',
+                    center: 'title',
+                    right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
+                },
+                editable: true, // Permite arrastar e redimensionar eventos (requer lógica de update no DB)
+                selectable: true, // Permite clicar e selecionar datas/slots
+                dayMaxEvents: true, // Mostra "+ more" quando há muitos eventos
+                events: [], // Os eventos serão carregados dinamicamente
+                eventTimeFormat: { // Formato da hora do evento
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    meridiem: false, // 'a' ou 'p' para AM/PM, false para 24h
+                    hour12: false
+                },
+                slotLabelFormat: { // Formato da hora na grade lateral (timeGrid)
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    meridiem: false,
+                    hour12: false
+                },
+                eventClick: function(info) {
+                    // info.event contém os dados do evento do FullCalendar
+                    // info.event.extendedProps contém os dados originais da tarefa
+                    const taskData = allUserTasks.find(t => t.id === info.event.id);
+                    if (taskData) {
+                        openEditModalWithTask(taskData);
+                    }
+                },
+                // dateClick: function(info) {
+                //    // info.dateStr é a data clicada (YYYY-MM-DD)
+                //    // info.allDay indica se clicou num slot de dia inteiro
+                //    taskDueDateInput.value = info.dateStr;
+                //    showToast(`Data ${info.dateStr} selecionada para nova tarefa.`, 'info');
+                //    // Poderia abrir o modal de adicionar tarefa com a data preenchida
+                // },
+                // eventDrop: async function(info) { // Quando um evento é arrastado para outra data/hora
+                //     const taskId = info.event.id;
+                //     const newDueDate = info.event.startStr.split('T')[0]; // Assume que startStr é ISO
+                //     let newStartTime = null;
+                //     if (info.event.startStr.includes('T')) {
+                //        newStartTime = info.event.startStr.split('T')[1].substring(0,5);
+                //     }
+                //     // Atualizar a tarefa no Firestore
+                //     if (tasksCollectionRef) {
+                //         showLoadingIndicator();
+                //         const taskRef = doc(tasksCollectionRef, taskId);
+                //         try {
+                //             await updateDoc(taskRef, { 
+                //                 dueDate: newDueDate, 
+                //                 startTime: newStartTime, // pode ser null se for evento de dia inteiro
+                //                 updatedAt: serverTimestamp() 
+                //             });
+                //             showToast('Tarefa reagendada no calendário!', 'success');
+                //         } catch (error) {
+                //             console.error("Erro ao reagendar tarefa:", error);
+                //             showToast('Erro ao reagendar tarefa.', 'error');
+                //             info.revert(); // Reverte a mudança visual no calendário
+                //         } finally {
+                //             hideLoadingIndicator();
+                //         }
+                //     }
+                // }
+            });
+            if (currentView === 'calendar') calendar.render();
+        }
+
+        function renderCalendarEvents(tasks) {
+            if (!calendar) return;
+            calendar.removeAllEvents(); // Limpa eventos antigos
+
+            const calendarEvents = tasks.map(task => {
+                let startDateTime, endDateTime;
+                
+                if (task.isDaily) {
+                    // Para tarefas diárias, precisamos criar múltiplas ocorrências ou usar RRule
+                    // Por simplicidade, vamos criar para os próximos N dias se não tiver data de início específica
+                    // Ou se tiver startTime, criar um evento recorrente se FullCalendar Premium RRule for usado.
+                    // Aqui, vamos apenas mostrar uma indicação, pois a renderização completa de diárias é complexa.
+                    // Poderíamos criar eventos para os próximos 7 dias, por exemplo.
+                    // Este é um placeholder. A lógica de tarefas diárias no calendário precisa ser mais robusta.
+                    const today = new Date();
+                    if (task.startTime) {
+                         startDateTime = `${today.toISOString().split('T')[0]}T${task.startTime}`;
+                         if (task.estimatedTime) {
+                            const [h, m] = task.startTime.split(':');
+                            const tempDate = new Date(today.getFullYear(), today.getMonth(), today.getDate(), parseInt(h), parseInt(m));
+                            tempDate.setMinutes(tempDate.getMinutes() + task.estimatedTime);
+                            endDateTime = `${tempDate.toISOString().split('T')[0]}T${String(tempDate.getHours()).padStart(2,'0')}:${String(tempDate.getMinutes()).padStart(2,'0')}`;
+                         }
+                    } else {
+                        // Tarefa diária sem hora específica, talvez mostrar como evento de dia inteiro?
+                        // Por ora, omitimos tarefas diárias sem hora do calendário para simplificar
+                        return null; 
+                    }
+                } else {
+                    if (task.dueDate && task.startTime) {
+                        startDateTime = `${task.dueDate}T${task.startTime}`;
+                        if (task.estimatedTime) {
+                            const [h, m] = task.startTime.split(':');
+                            const tempDate = new Date(`${task.dueDate}T00:00:00`); // Base date
+                            tempDate.setHours(parseInt(h), parseInt(m));
+                            tempDate.setMinutes(tempDate.getMinutes() + task.estimatedTime);
+                            endDateTime = `${task.dueDate}T${String(tempDate.getHours()).padStart(2,'0')}:${String(tempDate.getMinutes()).padStart(2,'0')}`;
+                        } else { // Se não tem tempo estimado mas tem hora de início, dura 1h por padrão?
+                             const [h, m] = task.startTime.split(':');
+                             const tempDate = new Date(`${task.dueDate}T00:00:00`);
+                             tempDate.setHours(parseInt(h) + 1, parseInt(m)); // Default 1 hour duration
+                             endDateTime = `${task.dueDate}T${String(tempDate.getHours()).padStart(2,'0')}:${String(tempDate.getMinutes()).padStart(2,'0')}`;
+                        }
+                    } else if (task.dueDate) { // Tarefa de dia inteiro
+                        startDateTime = task.dueDate;
+                        endDateTime = null; // FullCalendar entende isso como dia inteiro
+                    } else {
+                        return null; // Não pode ser exibido no calendário sem data
+                    }
+                }
+                if (!startDateTime) return null;
+
+                return {
+                    id: task.id,
+                    title: task.title,
+                    start: startDateTime,
+                    end: endDateTime, // Pode ser nulo para eventos de dia inteiro ou se não houver tempo estimado
+                    allDay: !task.startTime && !task.isDaily, // Define se é evento de dia inteiro
+                    backgroundColor: getPriorityDotColor(task.priority),
+                    borderColor: getPriorityDotColor(task.priority),
+                    textColor: '#FFFFFF', // Texto branco para melhor contraste com fundos coloridos
+                    extendedProps: { ...task } // Guarda a tarefa original
+                };
+            }).filter(event => event !== null); // Remove tarefas que não puderam ser mapeadas
+
+            calendar.addEventSource(calendarEvents);
+        }
+
+
+        // --- Lógica de Configuração de Expediente ---
+        const daysOfWeek = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+        function renderWorkHoursInputs(config = {}) {
+            workHoursInputsContainer.innerHTML = '';
+            daysOfWeek.forEach((dayName, dayIndex) => {
+                const dayConfig = config[dayIndex] || {};
+                const dayDiv = document.createElement('div');
+                dayDiv.className = 'p-3 bg-gray-700 rounded-md';
+                dayDiv.innerHTML = `
+                    <p class="font-medium text-gray-200 mb-2">${dayName}</p>
+                    <div class="grid grid-cols-2 sm:grid-cols-4 gap-x-3 gap-y-2 text-sm">
+                        <div>
+                            <label for="mStart_${dayIndex}" class="block text-gray-400">Manhã Início</label>
+                            <input type="time" id="mStart_${dayIndex}" data-day="${dayIndex}" data-period="morningStart" value="${dayConfig.morningStart || ''}" class="mt-1 w-full bg-gray-600 border-gray-500 rounded-md py-1 px-2 text-white">
+                        </div>
+                        <div>
+                            <label for="mEnd_${dayIndex}" class="block text-gray-400">Manhã Fim</label>
+                            <input type="time" id="mEnd_${dayIndex}" data-day="${dayIndex}" data-period="morningEnd" value="${dayConfig.morningEnd || ''}" class="mt-1 w-full bg-gray-600 border-gray-500 rounded-md py-1 px-2 text-white">
+                        </div>
+                        <div>
+                            <label for="aStart_${dayIndex}" class="block text-gray-400">Tarde Início</label>
+                            <input type="time" id="aStart_${dayIndex}" data-day="${dayIndex}" data-period="afternoonStart" value="${dayConfig.afternoonStart || ''}" class="mt-1 w-full bg-gray-600 border-gray-500 rounded-md py-1 px-2 text-white">
+                        </div>
+                        <div>
+                            <label for="aEnd_${dayIndex}" class="block text-gray-400">Tarde Fim</label>
+                            <input type="time" id="aEnd_${dayIndex}" data-day="${dayIndex}" data-period="afternoonEnd" value="${dayConfig.afternoonEnd || ''}" class="mt-1 w-full bg-gray-600 border-gray-500 rounded-md py-1 px-2 text-white">
+                        </div>
+                    </div>
+                `;
+                workHoursInputsContainer.appendChild(dayDiv);
+            });
+        }
+
+        async function loadWorkHours() {
+            if (!workHoursConfigRef) return;
+            if (unsubscribeWorkHours) unsubscribeWorkHours();
+
+            unsubscribeWorkHours = onSnapshot(workHoursConfigRef, (docSnap) => {
+                if (docSnap.exists()) {
+                    renderWorkHoursInputs(docSnap.data());
+                } else {
+                    renderWorkHoursInputs({}); // Renderiza com campos vazios se não houver config
+                }
+            }, (error) => {
+                console.error("Erro ao carregar configuração de expediente:", error);
+                showToast("Erro ao carregar expediente.", "error");
+            });
+        }
+
+        workHoursForm.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            if (!workHoursConfigRef) return;
+            
+            showLoadingIndicator();
+            const newConfig = {};
+            const inputs = workHoursInputsContainer.querySelectorAll('input[type="time"]');
+            inputs.forEach(input => {
+                const day = input.dataset.day;
+                const period = input.dataset.period;
+                if (!newConfig[day]) newConfig[day] = {};
+                newConfig[day][period] = input.value || null; // Salva null se vazio
+            });
+
+            try {
+                await setDoc(workHoursConfigRef, newConfig); // setDoc sobrescreve, o que é bom aqui
+                showToast("Expediente salvo com sucesso!", "success");
+                workHoursModal.classList.add('hidden');
+            } catch (error) {
+                console.error("Erro ao salvar expediente:", error);
+                showToast("Erro ao salvar expediente. Tente novamente.", "error");
+            } finally {
+                hideLoadingIndicator();
+            }
+        });
+        
+        openWorkHoursModalButton.addEventListener('click', () => workHoursModal.classList.remove('hidden'));
+        closeWorkHoursModalButton.addEventListener('click', () => workHoursModal.classList.add('hidden'));
+
+
+        // --- Troca de Visualização (Lista/Calendário) ---
+        function toggleView(view) {
+            currentView = view;
+            if (view === 'list') {
+                taskListContainer.classList.remove('hidden');
+                calendarContainer.classList.add('hidden');
+                viewToggleListButton.classList.remove('bg-gray-600', 'hover:bg-gray-500');
+                viewToggleListButton.classList.add('bg-indigo-600');
+                viewToggleCalendarButton.classList.remove('bg-indigo-600');
+                viewToggleCalendarButton.classList.add('bg-gray-600', 'hover:bg-gray-500');
+                renderTaskList(allUserTasks); // Re-renderiza a lista
+            } else if (view === 'calendar') {
+                taskListContainer.classList.add('hidden');
+                calendarContainer.classList.remove('hidden');
+                viewToggleCalendarButton.classList.remove('bg-gray-600', 'hover:bg-gray-500');
+                viewToggleCalendarButton.classList.add('bg-indigo-600');
+                viewToggleListButton.classList.remove('bg-indigo-600');
+                viewToggleListButton.classList.add('bg-gray-600', 'hover:bg-gray-500');
+                if (calendar) {
+                    calendar.render(); // Garante que o calendário seja renderizado se não estiver visível
+                    renderCalendarEvents(allUserTasks); // Carrega/atualiza eventos
+                }
+            }
+            applyFiltersAndRenderTasks();
+        }
+        
+        viewToggleListButton.addEventListener('click', () => toggleView('list'));
+        viewToggleCalendarButton.addEventListener('click', () => toggleView('calendar'));
+
+
+        // --- Setup de Event Listeners Adicionais ---
+        function setupEventListeners() {
+            // Inicialmente, a visualização de lista é padrão
+             taskIsDailyCheckbox.dispatchEvent(new Event('change')); // Para forms de adicionar
+             editTaskIsDailyCheckbox.dispatchEvent(new Event('change')); // Para forms de editar
+             toggleView('list');
+        }
+        
+        // Inicializa com overlay de loading visível
+        document.addEventListener('DOMContentLoaded', () => {
+            showLoadingIndicator(); 
+            // onAuthStateChanged tratará de esconder quando apropriado
+        });
+
+    </script>
+</body>
+</html>
